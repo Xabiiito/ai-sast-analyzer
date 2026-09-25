@@ -17,5 +17,5 @@ Una herramienta de **Análisis Estático de Código (SAST)** ligera y automatiza
 
 1. **Clona el repositorio:**
    ```bash
-   git clone [https://github.com/Xabiiito/ai-sast-analyzer.git](https://github.com/Xabiiito/ai-sast-analyzer.git)
+   git clone https://github.com/Xabiiito/ai-sast-analyzer.git
    cd ai-sast-analyzer
