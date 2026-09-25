@@ -1,75 +1,96 @@
-﻿import pathlib
+﻿import os
 import ollama
-from rich import print
-from rich.panel import Panel
+from rich.console import Console
 from rich.markdown import Markdown
+from rich.panel import Panel
 
-def analizar_proyecto():
-    # Directorio actual donde está el script
-    directorio_actual = pathlib.Path(".")
-    
-    # Buscamos todos los archivos .py (excluyendo el propio main.py y carpetas como venv)
-    archivos_python = [
-        f for f in directorio_actual.glob("*.py") 
-        if f.name != "main.py" and "venv" not in f.parts
-    ]
-    
-    if not archivos_python:
-        print("[bold red]✖ Error:[/bold red] No se encontraron archivos Python para analizar en este directorio.")
-        return
+console = Console()
 
-    print(f"[bold cyan]>[/bold cyan] Se han encontrado [bold green]{len(archivos_python)}[/bold green] archivo(s) para auditar.\n")
-    
-    # Cabecera para el informe global en Markdown
-    informe_global = "# 🛡️ Informe Global de Auditoría SAST\n\n"
-    informe_global += "Herramienta de Análisis Estático impulsada por IA Local (Ollama + Mistral).\n\n---\n\n"
+# Directorio a escanear (por defecto la carpeta actual del proyecto)
+TARGET_DIR = "."
+OUTPUT_REPORT = "informe_sast.md"
 
-    for archivo in archivos_python:
-        print(f"[yellow]🤖 Analizando archivo: {archivo.name}...[/yellow]")
-        
-        try:
-            with open(archivo, 'r', encoding='utf-8') as f:
-                codigo_a_analizar = f.read()
-        except Exception as e:
-            print(f"[red]No se pudo leer el archivo {archivo.name}: {e}[/red]")
+def scan_file_with_ai(file_path, code_content):
+    """Envía el contenido del archivo a Ollama (Mistral) para un análisis SAST profundo."""
+    prompt = f"""
+    Actúa como un Auditor de Ciberseguridad experto en OWASP Top 10. 
+    Analiza el siguiente código fuente en Python en busca de vulnerabilidades de seguridad críticas.
+    
+    Busca específicamente:
+    1. Inyección SQL (SQLi)
+    2. Credenciales, contraseñas o claves de API hardcodeadas (Secrets)
+    3. Ejecución de comandos del sistema inseguros (ej. os.system, subprocess sin validar)
+    4. Deserialización insegura (ej. uso peligroso de pickle)
+    5. Manipulación de rutas o Path Traversal (ej. open() con entradas de usuario sin sanitizar)
+
+    Código a analizar ({file_path}):
+    ```python
+    {code_content}
+    ```
+
+    Proporciona un informe claro detallando:
+    - Nombre de la vulnerabilidad encontrada.
+    - Nivel de riesgo (Alto, Medio, Bajo).
+    - Línea aproximada de código afectado.
+    - Explicación del riesgo.
+    - Solución propuesta para corregirlo.
+    """
+
+    try:
+        response = ollama.chat(
+            model='mistral',
+            messages=[{'role': 'user', 'content': prompt}]
+        )
+        return response['message']['content']
+    except Exception as e:
+        return f"Error al conectar con Ollama: {e}"
+
+def main():
+    console.print(Panel.fit("🛡️ Iniciando Escáner SAST Avanzado (Ollama + Mistral)", style="bold cyan"))
+    
+    report_content = "# 📊 Informe Global de Auditoría SAST Avanzada\n\n"
+    report_content += "Herramienta de Análisis Estático impulsada por IA Local con cobertura ampliada OWASP Top 10.\n\n---\n\n"
+
+    scanned_files = 0
+
+    # Recorrido recursivo por el directorio
+    for root, _, files in os.walk(TARGET_DIR):
+        # Ignorar la carpeta del entorno virtual y carpetas ocultas de git
+        if "venv" in root or ".git" in root or "assets" in root:
             continue
-
-        prompt = f"""
-        Eres un auditor de ciberseguridad experto en SAST. Analiza exhaustivamente el siguiente código fuente en busca de TODAS las vulnerabilidades posibles (Inyección SQL, credenciales/secretos hardcodeados, ejecución de comandos inseguros, etc.).
-        
-        Archivo afectado: {archivo.name}
-        Código a analizar:
-        {codigo_a_analizar}
-
-        Genera un informe estructurado que desglose:
-        1. Listado de vulnerabilidades encontradas (nombre y nivel de riesgo: Alto/Medio/Bajo).
-        2. Ubicación aproximada (línea o fragmento afectado).
-        3. Explicación del riesgo y propuesta de código corregido para cada una.
-        """
-
-        try:
-            response = ollama.chat(model='mistral', messages=[
-                {'role': 'user', 'content': prompt}
-            ])
-            analisis_ia = response['message']['content']
             
-            # Agregamos los resultados al informe global
-            informe_global += f"## 📂 Archivo: `{archivo.name}`\n\n"
-            informe_global += analisis_ia + "\n\n---\n\n"
-            
-        except Exception as e:
-            print(f"[bold red]✖ Error al conectar con Ollama para el archivo {archivo.name}:[/bold red] {e}")
+        for file in files:
+            if file.endswith(".py"):
+                file_path = os.path.join(root, file)
+                console.print(f"\n[yellow]🔍 Analizando archivo:[/yellow] {file_path}")
+                
+                try:
+                    with open(file_path, "r", encoding="utf-8") as f:
+                        code_content = f.read()
+                    
+                    # Llamada a la IA
+                    analysis = scan_file_with_ai(file_path, code_content)
+                    
+                    # Añadir al informe global
+                    report_content += f"## 📁 Archivo: `{file_path}`\n\n"
+                    report_content += analysis + "\n\n---\n\n"
+                    scanned_files += 1
 
-    # Guardamos el informe en un archivo físico de Markdown
-    nombre_archivo_salida = "informe_sast.md"
-    with open(nombre_archivo_salida, "w", encoding="utf-8") as f_out:
-        f_out.write(informe_global)
-        
-    print(f"\n[bold green]✔ ¡Auditoría completada con éxito![/bold green]")
-    print(f"[cyan]💾 Informe guardado en el archivo: {nombre_archivo_salida}[/cyan]\n")
+                except Exception as e:
+                    console.print(f"[red]Error leyendo el archivo {file_path}: {e}[/red]")
 
-    # Mostramos un resumen formateado en la terminal
-    print(Panel(Markdown(informe_global), title="[bold red]🛡️ Vista Previa del Informe SAST[/bold red]", expand=False))
+    if scanned_files > 0:
+        # Guardar el informe en formato Markdown
+        with open(OUTPUT_REPORT, "w", encoding="utf-8") as f:
+            f.write(report_content)
 
-if __name__ == '__main__':
-    analizar_proyecto()
+        console.print(f"\n[green]✅ ¡Escaneo completado! Se han analizado {scanned_files} archivo(s).[/green]")
+        console.print(f"[green]📄 Informe generado con éxito en: {OUTPUT_REPORT}[/green]\n")
+
+        # Mostrar una vista previa del informe en la terminal con Rich
+        console.print(Panel(Markdown(report_content), title="[bold blue]Vista Previa del Informe SAST[/bold blue]", border_style="blue"))
+    else:
+        console.print("[yellow]⚠️ No se encontraron archivos de Python para analizar en el directorio.[/yellow]")
+
+if __name__ == "__main__":
+    main()
