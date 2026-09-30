@@ -1,21 +1,21 @@
-# 🛡️ AI-Powered Local SAST Analyzer
+# 🛡️ AI-Powered Local SAST Security Analyzer
 
-Una herramienta de **Análisis Estático de Código (SAST)** ligera y automatizada, impulsada por un Modelo de Lenguaje Local (**Ollama + Mistral**). Diseñada para detectar vulnerabilidades de seguridad (OWASP Top 10) garantizando la **privacidad absoluta de los datos**, ya que todo el procesamiento se ejecuta 100% en local.
+A lightweight and automated **Static Application Security Testing (SAST) Tool**, powered by a Local Language Model (**Ollama + Mistral**). Designed to scan Python source code for security vulnerabilities (OWASP Top 10 focus) while ensuring **absolute data privacy**, as all processing runs completely offline.
 
-## 🚀 Características Principales
-- **Multivulnerabilidad:** Detecta inyecciones SQL, credenciales/secretos hardcodeados y ejecución de comandos inseguros (`os.system`).
-- **Escaneo Recursivo:** Analiza de forma automática todos los archivos de código fuente de un proyecto Python.
-- **Informes Automatizados:** Genera un informe detallado estructurado en formato Markdown (`informe_sast.md`).
-- **Interfaz Interactiva:** Visualización elegante de los resultados en la terminal utilizando la librería `rich`.
+## 🚀 Key Features
+- **OWASP Top 10 Focus:** Detects critical security flaws such as SQL Injection (SQLi), Hardcoded Secrets, Insecure Command Execution, Insecure Deserialization, and Path Traversal.
+- **Automated Reporting:** Generates a structured markdown security audit report (`sast_report.md`).
+- **Interactive Terminal UI:** Clean and professional output rendering using the `rich` library.
+- **100% Local & Private:** No source code leaves your local environment.
 
-## 🛠️ Tecnologías Utilizadas
+## 🛠️ Built With
 - **Python 3.11**
-- **Ollama** (Modelo local *Mistral*)
-- **Rich** (UI y renderizado Markdown en terminal)
+- **Ollama** (Local *Mistral* model)
+- **Rich** (Terminal UI and Markdown rendering)
 
-## ⚙️ Instalación y Uso
+## ⚙️ Installation & Usage
 
-1. **Clona el repositorio:**
+1. **Clone the repository:**
    ```bash
-   git clone https://github.com/Xabiiito/ai-sast-analyzer.git
+   git clone [https://github.com/Xabiiito/ai-sast-analyzer.git](https://github.com/Xabiiito/ai-sast-analyzer.git)
    cd ai-sast-analyzer

@@ -6,34 +6,33 @@ from rich.panel import Panel
 
 console = Console()
 
-# Directorio a escanear (por defecto la carpeta actual del proyecto)
 TARGET_DIR = "."
-OUTPUT_REPORT = "informe_sast.md"
+OUTPUT_REPORT = "sast_report.md"
 
-def scan_file_with_ai(file_path, code_content):
-    """Envía el contenido del archivo a Ollama (Mistral) para un análisis SAST profundo."""
+def scan_code_with_ai(file_path, file_content):
+    """Sends source code files to Ollama (Mistral) for security auditing against OWASP Top 10."""
     prompt = f"""
-    Actúa como un Auditor de Ciberseguridad experto en OWASP Top 10. 
-    Analiza el siguiente código fuente en Python en busca de vulnerabilidades de seguridad críticas.
+    Act as an expert Application Security Engineer and Senior SAST Auditor specialized in secure coding and the OWASP Top 10.
+    Analyze the following source code file for security vulnerabilities, bad practices, and security flaws.
     
-    Busca específicamente:
-    1. Inyección SQL (SQLi)
-    2. Credenciales, contraseñas o claves de API hardcodeadas (Secrets)
-    3. Ejecución de comandos del sistema inseguros (ej. os.system, subprocess sin validar)
-    4. Deserialización insegura (ej. uso peligroso de pickle)
-    5. Manipulación de rutas o Path Traversal (ej. open() con entradas de usuario sin sanitizar)
+    Look specifically for:
+    1. SQL Injection (SQLi) and other injection flaws.
+    2. Hardcoded credentials, passwords, API keys, or sensitive secrets.
+    3. Insecure system command executions (e.g., os.system, unsanitized subprocess).
+    4. Insecure deserialization (e.g., unsafe use of pickle).
+    5. Path Traversal and insecure file reads (e.g., open() with user-controlled inputs).
 
-    Código a analizar ({file_path}):
+    File to analyze ({file_path}):
     ```python
-    {code_content}
+    {file_content}
     ```
 
-    Proporciona un informe claro detallando:
-    - Nombre de la vulnerabilidad encontrada.
-    - Nivel de riesgo (Alto, Medio, Bajo).
-    - Línea aproximada de código afectado.
-    - Explicación del riesgo.
-    - Solución propuesta para corregirlo.
+    Provide a detailed structured report including:
+    - Name of the vulnerability or security flaw found.
+    - Risk level (High, Medium, Low).
+    - Affected line(s) of code.
+    - Explanation of the security risk.
+    - Solution or recommended secure coding practices to fix it.
     """
 
     try:
@@ -43,54 +42,48 @@ def scan_file_with_ai(file_path, code_content):
         )
         return response['message']['content']
     except Exception as e:
-        return f"Error al conectar con Ollama: {e}"
+        return f"Error connecting to Ollama: {e}"
 
 def main():
-    console.print(Panel.fit("🛡️ Iniciando Escáner SAST Avanzado (Ollama + Mistral)", style="bold cyan"))
+    console.print(Panel.fit("🛡️ Starting AI-Powered SAST Security Analyzer (Ollama + Mistral)", style="bold cyan"))
     
-    report_content = "# 📊 Informe Global de Auditoría SAST Avanzada\n\n"
-    report_content += "Herramienta de Análisis Estático impulsada por IA Local con cobertura ampliada OWASP Top 10.\n\n---\n\n"
+    report_content = "# 📊 Global SAST Security Audit Report\n\n"
+    report_content += "Static Application Security Testing powered by Local AI.\n\n---\n\n"
 
     scanned_files = 0
 
-    # Recorrido recursivo por el directorio
     for root, _, files in os.walk(TARGET_DIR):
-        # Ignorar la carpeta del entorno virtual y carpetas ocultas de git
         if "venv" in root or ".git" in root or "assets" in root:
             continue
             
         for file in files:
             if file.endswith(".py"):
                 file_path = os.path.join(root, file)
-                console.print(f"\n[yellow]🔍 Analizando archivo:[/yellow] {file_path}")
+                console.print(f"\n[yellow]🔍 Analyzing source code:[/yellow] {file_path}")
                 
                 try:
                     with open(file_path, "r", encoding="utf-8") as f:
-                        code_content = f.read()
+                        file_content = f.read()
                     
-                    # Llamada a la IA
-                    analysis = scan_file_with_ai(file_path, code_content)
+                    analysis = scan_code_with_ai(file_path, file_content)
                     
-                    # Añadir al informe global
-                    report_content += f"## 📁 Archivo: `{file_path}`\n\n"
+                    report_content += f"## 📄 Source File: `{file_path}`\n\n"
                     report_content += analysis + "\n\n---\n\n"
                     scanned_files += 1
 
                 except Exception as e:
-                    console.print(f"[red]Error leyendo el archivo {file_path}: {e}[/red]")
+                    console.print(f"[red]Error reading file {file_path}: {e}[/red]")
 
     if scanned_files > 0:
-        # Guardar el informe en formato Markdown
         with open(OUTPUT_REPORT, "w", encoding="utf-8") as f:
             f.write(report_content)
 
-        console.print(f"\n[green]✅ ¡Escaneo completado! Se han analizado {scanned_files} archivo(s).[/green]")
-        console.print(f"[green]📄 Informe generado con éxito en: {OUTPUT_REPORT}[/green]\n")
+        console.print(f"\n[green]✅ SAST audit completed! {scanned_files} file(s) analyzed.[/green]")
+        console.print(f"[green]📄 Report successfully generated at: {OUTPUT_REPORT}[/green]\n")
 
-        # Mostrar una vista previa del informe en la terminal con Rich
-        console.print(Panel(Markdown(report_content), title="[bold blue]Vista Previa del Informe SAST[/bold blue]", border_style="blue"))
+        console.print(Panel(Markdown(report_content), title="[bold blue]SAST Report Preview[/bold blue]", border_style="blue"))
     else:
-        console.print("[yellow]⚠️ No se encontraron archivos de Python para analizar en el directorio.[/yellow]")
+        console.print("[yellow]⚠️ No Python source files found in the directory.[/yellow]")
 
 if __name__ == "__main__":
     main()
